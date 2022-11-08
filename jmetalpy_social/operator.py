@@ -1,7 +1,8 @@
 from jmetal.core.operator import Mutation
-from jmetal.core.algorithm import Algorithm
+from jmetal.algorithm.singleobjective import GeneticAlgorithm
 import random
 import numpy as np
+
 
 class ExclusiveMutations(Mutation):
     def __init__(self, mutations, probabilities):
@@ -9,6 +10,10 @@ class ExclusiveMutations(Mutation):
         self.probabilities = probabilities
 
         self.thresholds = [sum(probabilities[:i]) for i in range(len(probabilities)+1)]
+        
+    def set_tracked_algorithm(self, algorithm: GeneticAlgorithm):
+        for mut in self.mutations:
+            mut.set_tracked_algorithm(algorithm)
           
     def execute(self,solution):
         rand = random.random()
@@ -26,6 +31,10 @@ class ExclusiveMutations(Mutation):
 class IndependantMutations(Mutation):
     def __init__(self, mutations):
         self.mutations = mutations
+        
+    def set_tracked_algorithm(self, algorithm: GeneticAlgorithm):
+        for mut in self.mutations:
+            mut.set_tracked_algorithm(algorithm)
           
     def execute(self,solution):
         for mut in self.mutations:
@@ -38,10 +47,12 @@ class IndependantMutations(Mutation):
 
 
 class FollowBestMutation(Mutation):
-    def __init__(self,probability: float, tracked_algorithm: Algorithm, tracked_best_count: int):
+    def __init__(self,probability: float, tracked_best_count: int):
         Mutation.__init__(self,probability)
-        self.tracked_algorithm = tracked_algorithm
         self.tracked_best_count = tracked_best_count
+        
+    def set_tracked_algorithm(self, algorithm: GeneticAlgorithm):
+        self.tracked_algorithm = algorithm
     
     def execute(self,solution):
         
@@ -58,11 +69,13 @@ class FollowBestMutation(Mutation):
         return "FollowBestMutation"
 
 class FollowBestSharedGenesMutation(Mutation):
-    def __init__(self,probability: float, tracked_algorithm: Algorithm, tracked_best_count: int, copy_genes_count:int ):
+    def __init__(self,probability: float, tracked_best_count: int, copy_genes_count:int ):
         Mutation.__init__(self,probability)
-        self.tracked_algorithm = tracked_algorithm
         self.tracked_best_count = tracked_best_count
         self.copy_genes_count = copy_genes_count
+        
+    def set_tracked_algorithm(self, algorithm: GeneticAlgorithm):
+        self.tracked_algorithm = algorithm
     
     def execute(self,solution):
         rand = random.random()
@@ -95,10 +108,12 @@ class FollowBestSharedGenesMutation(Mutation):
         return "FollowBestSharedGenesMutation"
 
 class FollowBestMutationSingleGene(Mutation):
-    def __init__(self,probability: float, tracked_algorithm: Algorithm, tracked_best_count: int):
+    def __init__(self,probability: float, tracked_best_count: int):
         Mutation.__init__(self,probability)
-        self.tracked_algorithm = tracked_algorithm
         self.tracked_best_count = tracked_best_count
+        
+    def set_tracked_algorithm(self, algorithm: GeneticAlgorithm):
+        self.tracked_algorithm = algorithm
     
     def execute(self,solution):
         rand = random.random()

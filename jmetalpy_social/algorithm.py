@@ -16,6 +16,7 @@ class PaperAlgorithm(GeneticAlgorithm):
         self.keep_parents = keep_parents
         self.offspring_population_size = kwargs['offspring_population_size']
         self.mating_pool_size = mating_pool_size
+        self.mutation_operator.set_tracked_algorithm(self)
 
     def reproduction(self, mating_population):
         number_of_parents_to_combine = self.crossover_operator.get_number_of_parents()
@@ -59,6 +60,8 @@ class ObservedPaperAlgorithm(PaperAlgorithm):
         self.history = {"best":[],
                         "average":[]
                         }
+        self.verbose = True
+        
     def step(self):
         PaperAlgorithm.step(self)
 
@@ -73,14 +76,17 @@ class ObservedPaperAlgorithm(PaperAlgorithm):
         self.solutions = self.evaluate(self.solutions)
 
         self.init_progress()
-
-        # while not self.stopping_condition_is_met():
-        #     self.step()
-        #     self.update_progress()
-
-        #assume we always use StoppingByEvaluations criterion so that we can use progress bar
-        for i in tqdm(range(self.termination_criterion.max_evaluations)):
-            self.step()
-            self.update_progress()
+        
+        if self.verbose:
+            #assume we always use StoppingByEvaluations criterion so that we can use progress bar
+            for i in tqdm(range(self.termination_criterion.max_evaluations)):
+                self.step()
+                self.update_progress()
+        else:
+            for i in range(self.termination_criterion.max_evaluations):
+                self.step()
+                self.update_progress()
 
         self.total_computing_time = time.time() - self.start_computing_time
+        
+        
