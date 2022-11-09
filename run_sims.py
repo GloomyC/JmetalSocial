@@ -14,6 +14,7 @@ from jmetalpy_social.problem import *
 
 import multiprocessing as mp
 
+import json
 
 shared_kwargs={
     "population_size": 200,
@@ -23,7 +24,7 @@ shared_kwargs={
     "selection": RandomSolutionSelection(),
 }
 
-def buildAlg0(problem,iterations):
+def buildBaseAlg(problem,iterations):
     D = problem.number_of_variables
     kwargs = shared_kwargs.copy()
     kwargs_update={
@@ -37,7 +38,7 @@ def buildAlg0(problem,iterations):
     
     return algorithm
 
-def buildAlg1(problem,iterations):
+def buildFollowBestAlg(problem,iterations):
     D = problem.number_of_variables
     kwargs = shared_kwargs.copy()
     kwargs_update={
@@ -49,7 +50,8 @@ def buildAlg1(problem,iterations):
             PolynomialMutation(probability=1/D, distribution_index=20),
             FollowBestMutation(
                 probability=0.4,
-                tracked_best_count=5),
+                tracked_best_count=5,
+                follow_rate=0.1),
             ]
         )
     }
@@ -58,7 +60,7 @@ def buildAlg1(problem,iterations):
     
     return algorithm
 
-def buildAlg2(problem,iterations):
+def buildFollowSharedBestAlg(problem,iterations):
     D = problem.number_of_variables
     kwargs = shared_kwargs.copy()
     kwargs_update={
@@ -71,7 +73,8 @@ def buildAlg2(problem,iterations):
             FollowBestSharedGenesMutation(
                 probability=0.4,
                 tracked_best_count=5,
-                copy_genes_count=D//4),
+                copy_genes_count=D//2,
+                follow_rate=0.1),
             ]
         )
     }
@@ -88,18 +91,15 @@ def joinHistories(histories):
         
         cat_vals = np.array([hist[k] for hist in histories])
         
-        joined_history[k] = np.mean(cat_vals, axis=0)
+        joined_history[k] = np.mean(cat_vals, axis=0).tolist()
         
     return joined_history
 
 def evalAlg(problem, iterations, buildAlgFn, i):
-    print(f"EVAL STARTED {i}")
     algorithm = buildAlgFn(problem,iterations)
     algorithm.verbose = False
     
     algorithm.run()
-    print(f"EVAL DONE {i}")
-
         
     return algorithm.history
 
@@ -110,25 +110,42 @@ def multirunEvalAlg(repeats, pool, problem, iterations, buildAlgFn):
     results = pool.starmap(evalAlg,args)
     
     return joinHistories(results)
+
+
+def saveHistory(history, fname):
+    with open(f"results/{fname}.json",'w+') as f:
+        f.write(json.dumps(history))
+
     
 if __name__ == '__main__':
     
-    D_dimension = 400
-    N_repeats = 5
-    P_processes = 2
-    I_iterations = 100
+    D_dimension = 1000
+    N_repeats = 4
+    P_processes = 4
+    I_iterations = 200
     
-    problems = [AckleyProblem(D_dimension)]
-    algorithms = [buildAlg0, buildAlg1, buildAlg2]
+    problems = [
+        AckleyProblem(D_dimension),
+        DeJongProblem(D_dimension),
+        RastriginProblem(D_dimension),
+        GriewankProblem(D_dimension),
+    ]
+    algorithms = [
+#         (buildBaseAlg, "base_algorithm"),
+#         (buildFollowBestAlg, "follow_best"),
+        (buildFollowSharedBestAlg, "follow_shared_best"),
+    ]
 
     
     with mp.Pool(P_processes) as pool:
-        for problem in problems:
-            for buildAlg in algorithms:
+        combos = [(p,alg,alg_name) for p in problems for alg,alg_name in algorithms]
+        
+        for problem, buildAlg, algName  in tqdm(combos):                
                 h = multirunEvalAlg(N_repeats, pool, problem, I_iterations, buildAlg)
+                
+                saveHistory(h,f"{algName}_{problem.get_name()}")
 
-                print(h['best'])
-                print(h['average'])
+               
 
     
     

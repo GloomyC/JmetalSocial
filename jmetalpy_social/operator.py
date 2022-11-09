@@ -47,9 +47,10 @@ class IndependantMutations(Mutation):
 
 
 class FollowBestMutation(Mutation):
-    def __init__(self,probability: float, tracked_best_count: int):
+    def __init__(self,probability: float, tracked_best_count: int, follow_rate:float):
         Mutation.__init__(self,probability)
         self.tracked_best_count = tracked_best_count
+        self.follow_rate = follow_rate
         
     def set_tracked_algorithm(self, algorithm: GeneticAlgorithm):
         self.tracked_algorithm = algorithm
@@ -60,8 +61,9 @@ class FollowBestMutation(Mutation):
         for i in range(len(solution.variables)):
             rand = random.random()
             if rand < self.probability:
+                diff = self.tracked_algorithm.solutions[teacher_idx].variables[i] - solution.variables[i]
 
-                solution.variables[i] = self.tracked_algorithm.solutions[teacher_idx].variables[i]
+                solution.variables[i] += self.follow_rate*diff
 
         return solution
 
@@ -69,10 +71,11 @@ class FollowBestMutation(Mutation):
         return "FollowBestMutation"
 
 class FollowBestSharedGenesMutation(Mutation):
-    def __init__(self,probability: float, tracked_best_count: int, copy_genes_count:int ):
+    def __init__(self,probability: float, tracked_best_count: int, copy_genes_count:int, follow_rate:float):
         Mutation.__init__(self,probability)
         self.tracked_best_count = tracked_best_count
         self.copy_genes_count = copy_genes_count
+        self.follow_rate = follow_rate
         
     def set_tracked_algorithm(self, algorithm: GeneticAlgorithm):
         self.tracked_algorithm = algorithm
@@ -88,19 +91,16 @@ class FollowBestSharedGenesMutation(Mutation):
             genes_mat = np.transpose(genes_mat)
 
             sharing_rating = -np.std(genes_mat,axis=-1)
-            # sharing_rating = sharing_rating/np.max(sharing_rating)
-            # sharing_rating = 1-sharing_rating
             sharing_rating = np.exp(sharing_rating)/np.sum(np.exp(sharing_rating))
             
             chosen_genes = np.random.choice(np.arange(0,sharing_rating.shape[0]), p=sharing_rating, size=(self.copy_genes_count,))
 
-            # print(sharing_rating)
-            # print(np.argsort(sharing_rating))
-
-            # chosen_genes = np.argsort(sharing_rating)[0:self.copy_genes_count]
-
-            for i in chosen_genes:
-                solution.variables[i] = self.tracked_algorithm.solutions[teacher_idx].variables[i]
+            for g in chosen_genes:
+                mean_best = np.mean([self.tracked_algorithm.solutions[j].variables[g] for j in range(self.tracked_best_count)])
+                
+                diff = mean_best - solution.variables[g]
+                
+                solution.variables[g] += self.follow_rate*diff
 
         return solution
 

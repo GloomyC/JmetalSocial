@@ -58,7 +58,8 @@ class ObservedPaperAlgorithm(PaperAlgorithm):
         PaperAlgorithm.__init__(self, *args, **kwargs)
 
         self.history = {"best":[],
-                        "average":[]
+                        "average":[],
+                        "dimension":self.problem.number_of_variables
                         }
         self.verbose = True
         
