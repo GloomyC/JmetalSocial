@@ -83,6 +83,29 @@ def buildFollowSharedBestAlg(problem,iterations):
     
     return algorithm
 
+def buildFollowDistinctBestAlg(problem,iterations):
+    D = problem.number_of_variables
+    kwargs = shared_kwargs.copy()
+    kwargs_update={
+        "problem": problem,
+        "termination_criterion": StoppingByEvaluations(max_evaluations=iterations),
+        "keep_parents": True,
+        "mutation": IndependantMutations(
+            [
+            PolynomialMutation(probability=1/D, distribution_index=20),
+            FollowBestDistinctGenesMutation(
+                probability=0.4,
+                tracked_best_count=5,
+                copy_genes_count=D//2,
+                follow_rate=0.1),
+            ]
+        )
+    }
+    kwargs.update(kwargs_update)
+    algorithm = ObservedPaperAlgorithm(**kwargs)
+    
+    return algorithm
+
 def joinHistories(histories):
     
     joined_history = {}
@@ -122,7 +145,7 @@ if __name__ == '__main__':
     D_dimension = 1000
     N_repeats = 4
     P_processes = 4
-    I_iterations = 200
+    I_iterations = 80
     
     problems = [
         AckleyProblem(D_dimension),
@@ -131,9 +154,10 @@ if __name__ == '__main__':
         GriewankProblem(D_dimension),
     ]
     algorithms = [
-#         (buildBaseAlg, "base_algorithm"),
-#         (buildFollowBestAlg, "follow_best"),
+        (buildBaseAlg, "base_algorithm"),
+        (buildFollowBestAlg, "follow_best"),
         (buildFollowSharedBestAlg, "follow_shared_best"),
+        (buildFollowDistinctBestAlg, "follow_distinct_best"),
     ]
 
     
