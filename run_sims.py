@@ -347,8 +347,8 @@ if __name__ == "__main__":
 #         (buildRepelWorstNormAlg, "repel_worst_norm"),
 #         (buildRepelWorstMeanAlg, "repel_worst_mean"),
         (buildRepelWorstGravityAlg, "repel_worst_gravity"),
-        (buildRepelWorstGravityMultistepAlg, "repel_worst_gravity_multistep_p04"),
-        (buildDistinctGravityMultistepComboAlg, "combo_distinct_gravity_multistep_p1"),
+        (buildRepelWorstGravityMultistepAlg, "repel_worst_gravity_multistep"),
+        (buildDistinctGravityMultistepComboAlg, "combo_distinct_gravity_multistep"),
     ]
     
     problems = [ptype(psize) for ptype in problem_types for psize in problem_sizes]
