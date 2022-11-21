@@ -142,24 +142,32 @@ def saveHistory(history, fname):
     
 if __name__ == '__main__':
     
-    D_dimension = 1000
     N_repeats = 4
     P_processes = 4
-    I_iterations = 80
-    
-    problems = [
-        AckleyProblem(D_dimension),
-        DeJongProblem(D_dimension),
-        RastriginProblem(D_dimension),
-        GriewankProblem(D_dimension),
+    I_iterations = 10
+  
+   
+    problem_sizes = [
+        100,
+        500,
+        1000,
     ]
+    
+    problem_types = [
+        AckleyProblem,
+        DeJongProblem,
+        RastriginProblem,
+        GriewankProblem,
+    ]
+    
     algorithms = [
         (buildBaseAlg, "base_algorithm"),
         (buildFollowBestAlg, "follow_best"),
         (buildFollowSharedBestAlg, "follow_shared_best"),
         (buildFollowDistinctBestAlg, "follow_distinct_best"),
     ]
-
+    
+    problems = [ptype(psize) for ptype in problem_types for psize in problem_sizes]
     
     with mp.Pool(P_processes) as pool:
         combos = [(p,alg,alg_name) for p in problems for alg,alg_name in algorithms]
@@ -167,7 +175,7 @@ if __name__ == '__main__':
         for problem, buildAlg, algName  in tqdm(combos):                
                 h = multirunEvalAlg(N_repeats, pool, problem, I_iterations, buildAlg)
                 
-                saveHistory(h,f"{algName}_{problem.get_name()}")
+                saveHistory(h,f"{algName}_{problem.get_name()}_{problem.number_of_variables}")
 
                
 

@@ -89,5 +89,6 @@ class ObservedPaperAlgorithm(PaperAlgorithm):
                 self.update_progress()
 
         self.total_computing_time = time.time() - self.start_computing_time
+        self.history["time"] = self.total_computing_time
         
         
