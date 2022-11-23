@@ -1,7 +1,12 @@
-from jmetal.core.operator import Mutation
-from jmetal.algorithm.singleobjective import GeneticAlgorithm
 import random
+
 import numpy as np
+from jmetal.algorithm.singleobjective import GeneticAlgorithm
+from jmetal.core.operator import Mutation
+
+
+def my_sign(x: float) -> float:
+    return x / (abs(x) + 1e-6)
 
 
 class ExclusiveMutations(Mutation):
@@ -394,4 +399,114 @@ class RepelWorstMutationGravityMutlistep(Mutation):
         return solution
 
     def get_name(self) -> str:
-        return "RepelWorstMutationMean"
+        return "RepelWorstMutationGravityMutlistep"
+
+
+class RepelWorstMutationGravityShared(Mutation):
+    def __init__(
+        self,
+        probability: float,
+        tracked_worst_count: int,
+        repel_rate: float,
+    ):
+        super().__init__(probability)
+        self.tracked_worst_count = tracked_worst_count
+        self.repel_rate = repel_rate
+
+    def set_tracked_algorithm(self, algorithm: GeneticAlgorithm):
+        self.tracked_algorithm = algorithm
+
+    def execute(self, solution):
+        n = len(self.tracked_algorithm.solutions)
+        if random.random() < self.probability:
+            for i in range(len(solution.variables)):
+                gravity = lambda x: x / abs(x + 1e-6) * (abs(x) + 1) ** -2
+                mean_val = (
+                    sum(
+                        self.tracked_algorithm.solutions[n - j].variables[i]
+                        for j in range(1, self.tracked_worst_count)
+                    )
+                    # / self.tracked_worst_count
+                )
+                diff = solution.variables[i] - mean_val
+                solution.variables[i] += self.repel_rate * gravity(diff)
+                solution.variables[i] = min(
+                    max(
+                        solution.variables[i],
+                        self.tracked_algorithm.problem.lower_bound[i],
+                    ),
+                    self.tracked_algorithm.problem.upper_bound[i],
+                )
+        return solution
+
+    def get_name(self) -> str:
+        return "NOTE IMPLEMENTED"
+
+
+class MagneticMutation(Mutation):
+    def __init__(
+        self,
+        probability: float,
+        margin_count: int,
+        effect_rate: float,
+    ):
+        super().__init__(probability)
+        self.effect_rate = effect_rate
+        self.margin_count = margin_count
+
+    def set_tracked_algorithm(self, algorithm: GeneticAlgorithm):
+        self.tracked_algorithm = algorithm
+
+    def execute(self, solution):
+
+        if random.random() >= self.probability:
+            return solution
+
+        n = len(self.tracked_algorithm.solutions)
+        # indices = list(range(self.margin_count)) + list(range(n - self.margin_count, n))
+        indices = list(range(n - self.margin_count, n))
+        genes_mat = np.array(
+            [self.tracked_algorithm.solutions[i].variables for i in indices]
+        )
+
+        this_genes = np.array(solution.variables)
+        distances = np.linalg.norm(genes_mat - this_genes, axis=1)
+
+        idx = np.random.choice(
+            distances.shape[0],
+            p=(1 / (distances + 1e-2)) / (1 / (distances + 1e-2)).sum(),
+        )
+        other_idx = indices[idx]
+
+        other_genes = self.tracked_algorithm.solutions[other_idx].variables
+        dist = float(distances[idx])
+        k = my_sign(x=dist) / (abs(dist) + 1) ** 3
+
+        max_obj_diff = (
+            self.tracked_algorithm.solutions[-1].objectives[0]
+            - self.tracked_algorithm.solutions[0].objectives[0]
+        )
+        force = (
+            -(
+                solution.objectives[0]
+                - self.tracked_algorithm.solutions[other_idx].objectives[0]
+            )
+            / max_obj_diff
+        )
+
+        for i in range(len(solution.variables)):
+            diff_i = solution.variables[i] - other_genes[i]
+            delta_i = k * diff_i
+            solution.variables[i] += force * self.effect_rate * delta_i
+            solution.variables[i] = min(
+                max(
+                    solution.variables[i],
+                    self.tracked_algorithm.problem.lower_bound[i],
+                ),
+                self.tracked_algorithm.problem.upper_bound[i],
+            )
+
+        return solution
+
+    def get_name(self) -> str:
+        return "MagneticFieldMutation"

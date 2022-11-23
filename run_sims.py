@@ -1,25 +1,22 @@
+import json
+import multiprocessing as mp
+
+import matplotlib.pyplot as plt
+import numpy as np
 from jmetal.algorithm.singleobjective import GeneticAlgorithm
 from jmetal.operator import (
-    SBXCrossover,
-    RandomSolutionSelection,
-    PolynomialMutation,
     NullMutation,
+    PolynomialMutation,
+    RandomSolutionSelection,
+    SBXCrossover,
 )
-from jmetal.util.termination_criterion import StoppingByEvaluations
 from jmetal.problem.singleobjective.unconstrained import Rastrigin
-
-import numpy as np
-import matplotlib.pyplot as plt
-
+from jmetal.util.termination_criterion import StoppingByEvaluations
 from tqdm import tqdm
 
 from jmetalpy_social.algorithm import *
 from jmetalpy_social.operator import *
 from jmetalpy_social.problem import *
-
-import multiprocessing as mp
-
-import json
 
 shared_kwargs = {
     "population_size": 200,
@@ -175,11 +172,13 @@ def buildRepelWorstNormAlg(problem, iterations):
                 RepelWorstMutationNorm(
                     probability=0.4,
                     tracked_worst_count=5,
-                    norm_fn=lambda x: x / abs(x + 1e-6) * (abs(x) + 1) ** -2,
+                    norm_fn=lambda x: -1 / 5 * x + x / abs(x + 1e-6),
+                    # norm_fn=lambda x: x / abs(x + 1e-6) * (1 / 2 * abs(x) + 1) ** -2,
+                    # norm_fn=lambda x: x / abs(x + 1e-6) * (abs(x) + 1) ** -2,
                     # norm_fn=lambda x: -(x / 5 - x / abs(x + 1e-6)),
                     # norm_fn=lambda x: x / (abs(x) + 1e-6) * e ** (-abs(x)),
                     #  np.sign(x) * np.exp(-np.abs(x)),
-                    repel_rate=0.1,
+                    repel_rate=1,
                 ),
             ]
         ),
@@ -225,7 +224,7 @@ def buildRepelWorstGravityAlg(problem, iterations):
             [
                 PolynomialMutation(probability=1 / D, distribution_index=20),
                 RepelWorstMutationGravity(
-                    probability=0.4, tracked_worst_count=5, repel_rate=0.1
+                    probability=0.4, tracked_worst_count=5, repel_rate=1
                 ),
             ]
         ),
@@ -247,7 +246,7 @@ def buildRepelWorstGravityMultistepAlg(problem, iterations):
             [
                 PolynomialMutation(probability=1 / D, distribution_index=20),
                 RepelWorstMutationGravityMutlistep(
-                    probability=0.4, tracked_worst_count=5, repel_rate=0.1
+                    probability=0.4, tracked_worst_count=5, repel_rate=1
                 ),
             ]
         ),
@@ -275,8 +274,88 @@ def buildDistinctGravityMultistepComboAlg(problem, iterations):
                     follow_rate=0.1,
                 ),
                 RepelWorstMutationGravityMutlistep(
-                    probability=1, tracked_worst_count=5, repel_rate=0.1
+                    probability=0.4, tracked_worst_count=5, repel_rate=1
                 ),
+            ]
+        ),
+    }
+    kwargs.update(kwargs_update)
+    algorithm = ObservedPaperAlgorithm(**kwargs)
+
+    return algorithm
+
+
+def buildDistinctGravityComboAlg(problem, iterations):
+    D = problem.number_of_variables
+    kwargs = shared_kwargs.copy()
+    kwargs_update = {
+        "problem": problem,
+        "termination_criterion": StoppingByEvaluations(max_evaluations=iterations),
+        "keep_parents": True,
+        "mutation": IndependantMutations(
+            [
+                PolynomialMutation(probability=1 / D, distribution_index=20),
+                FollowBestDistinctGenesMutation(
+                    probability=0.4,
+                    tracked_best_count=5,
+                    copy_genes_count=D // 2,
+                    follow_rate=0.1,
+                ),
+                RepelWorstMutationGravity(
+                    probability=0.4, tracked_worst_count=5, repel_rate=2
+                ),
+            ]
+        ),
+    }
+    kwargs.update(kwargs_update)
+    algorithm = ObservedPaperAlgorithm(**kwargs)
+
+    return algorithm
+
+
+def buildDistinctRepelComboAlg(problem, iterations):
+    D = problem.number_of_variables
+    kwargs = shared_kwargs.copy()
+    kwargs_update = {
+        "problem": problem,
+        "termination_criterion": StoppingByEvaluations(max_evaluations=iterations),
+        "keep_parents": True,
+        "mutation": IndependantMutations(
+            [
+                PolynomialMutation(probability=1 / D, distribution_index=20),
+                FollowBestDistinctGenesMutation(
+                    probability=0.4,
+                    tracked_best_count=5,
+                    copy_genes_count=D // 2,
+                    follow_rate=0.1,
+                ),
+                RepelWorstMutationNorm(
+                    probability=0.4,
+                    tracked_worst_count=5,
+                    norm_fn=lambda x: -1 / 5 * x + x / abs(x + 1e-6),
+                    # norm_fn=lambda x: -1 / 5 * x + x / abs(x + 1e-6),
+                    repel_rate=1,
+                ),
+            ]
+        ),
+    }
+    kwargs.update(kwargs_update)
+    algorithm = ObservedPaperAlgorithm(**kwargs)
+
+    return algorithm
+
+
+def buildMagneticAlg(problem, iterations):
+    D = problem.number_of_variables
+    kwargs = shared_kwargs.copy()
+    kwargs_update = {
+        "problem": problem,
+        "termination_criterion": StoppingByEvaluations(max_evaluations=iterations),
+        "keep_parents": True,
+        "mutation": IndependantMutations(
+            [
+                PolynomialMutation(probability=1 / D, distribution_index=20),
+                MagneticMutation(probability=1, margin_count=5, effect_rate=10),
             ]
         ),
     }
@@ -334,14 +413,17 @@ if __name__ == "__main__":
         # (buildBaseAlg, "base_algorithm"),
         # (buildFollowBestAlg, "follow_best"),
         # (buildFollowSharedBestAlg, "follow_shared_best"),
-        (buildFollowDistinctBestAlg, "follow_distinct_best"),
+        # (buildFollowDistinctBestAlg, "follow_distinct_best"),
         # (buildRepelWorstAlg, "repel_worst"),
         # (buildRepelWorstSparseAlg, "repel_worst_sparse"),
         # (buildRepelWorstNormAlg, "repel_worst_norm"),
         # (buildRepelWorstMeanAlg, "repel_worst_mean"),
         # (buildRepelWorstGravityAlg, "repel_worst_gravity"),
-        # (buildRepelWorstGravityMultistepAlg, "repel_worst_gravity_multistep_p04"),
-        # (buildDistinctGravityMultistepComboAlg, "combo_distinct_gravity_multistep_p1"),
+        # (buildRepelWorstGravityMultistepAlg, "repel_worst_gravity_multistep"),
+        # (buildDistinctGravityMultistepComboAlg, "combo_distinct_gravity_multistep"),
+        # (buildDistinctGravityComboAlg, "combo_distinct_gravity"),
+        # (buildDistinctRepelComboAlg, "combo_distinct_repel"),
+        (buildMagneticAlg, "magnetic"),
     ]
 
     with mp.Pool(P_processes) as pool:
