@@ -277,9 +277,9 @@ def save_build_kwargs(kwargs: dict, fname: str) -> None:
 
 if __name__ == "__main__":
 
-    N_repeats = 12
+    N_repeats = 4
     P_processes = 4
-    I_iterations = 100
+    I_iterations = 80
 
     problem_sizes = [
         100,
@@ -295,7 +295,6 @@ if __name__ == "__main__":
     ]
 
     runs = [
-        (buildBaseAlg, "base_algorithm", {}),
         (
             buildFollowBestAlg,
             "follow_best",
@@ -337,42 +336,65 @@ if __name__ == "__main__":
                 "repel_rate": [0.1, 0.5, 1, 10],
             },
         ),
-        (
-            buildDistinctGravityMultistepComboAlg,
-            "combo_distinct_gravity_multistep",
-            {
-                "follow_probability": [0.1, 0.4, 1],
-                "tracked_best_count": [1, 5, 10, 100],
-                "copy_genes_alpha": [1, 2, 10],
-                "follow_rate": [0.1, 0.2, 0.5],
-                "repel_probability": [0.4, 1],
-                "tracked_worst_count": [1, 10, 100],
-                "repel_rate": [0.1, 0.5, 1, 10],
-            },
-        ),
+        # (
+        #     buildDistinctGravityMultistepComboAlg,
+        #     "combo_distinct_gravity_multistep",
+        #     {
+        #         "follow_probability": [0.1, 0.4, 1],
+        #         "tracked_best_count": [1, 5, 10, 100],
+        #         "copy_genes_alpha": [1, 2, 10],
+        #         "follow_rate": [0.1, 0.2, 0.5],
+        #         "repel_probability": [0.4, 1],
+        #         "tracked_worst_count": [1, 10, 100],
+        #         "repel_rate": [0.1, 0.5, 1, 10],
+        #     },
+        # ),
     ]
 
     problems = [ptype(psize) for ptype in problem_types for psize in problem_sizes]
 
     with mp.Pool(P_processes) as pool:
 
-        combos = (
-            (p, alg, alg_name, {k: v for k, v in zip(nkw.keys(), vals)}, i)
-            for p in problems
-            for (alg, alg_name, nkw) in runs
-            for i, vals in enumerate(product(*nkw.values()))
-        )
-
-        for problem, build_alg, alg_name, build_kwargs, i in tqdm(combos):
-            h = multirunEvalAlg(
-                repeats=N_repeats,
-                pool=pool,
-                problem=problem,
-                iterations=I_iterations,
-                buildAlgFn=build_alg,
-                build_kwargs=build_kwargs,
+        for i_p, problem in enumerate(problems):
+            print(
+                f"\nPROBLEM [{i_p+1}/{len(problems)}]: {problem.get_name()} ({problem.number_of_variables})"
             )
+            start_time = time.time()
 
-            fname = f"{alg_name}_{i}_{problem.get_name()}_{problem.number_of_variables}"
-            saveHistory(history=h, fname=fname)
-            save_build_kwargs(kwargs=build_kwargs, fname=fname)
+            for build_alg, alg_name, param_grid in runs:
+                i = sum(len(values) - 1 for values in param_grid.values()) + 1
+                print(f"\nALGORITHM: {alg_name}, {i} experiments to go")
+
+                best_score = None
+                best_history = None
+                best_params = {param: values[0] for param, values in param_grid.items()}
+
+                for param, values in param_grid.items():
+
+                    for val in tqdm(values, desc=f"Exploring {param}"):
+
+                        if (best_params[param] == val) and (best_score is not None):
+                            continue
+
+                        build_kwargs = {**best_params, **{param: val}}
+                        history = multirunEvalAlg(
+                            repeats=N_repeats,
+                            pool=pool,
+                            problem=problem,
+                            iterations=I_iterations,
+                            buildAlgFn=build_alg,
+                            build_kwargs=build_kwargs,
+                        )
+
+                        score = history["average"][-1]
+
+                        if (best_score is None) or (score < best_score):
+                            best_score = score
+                            best_history = history
+                            best_params[param] = val
+
+                fname = f"{alg_name}_{problem.get_name()}_{problem.number_of_variables}"
+                saveHistory(history=best_history, fname=fname)
+                save_build_kwargs(kwargs=best_params, fname=fname)
+
+            print(f"\nFINISHED AFTER {time.time() - start_time:.2f}s")
