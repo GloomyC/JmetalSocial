@@ -6,7 +6,7 @@ import sys
 import os
 
 import numpy as np
-from jmetal.operator import PolynomialMutation, RandomSolutionSelection, SBXCrossover
+from jmetal.operator import PolynomialMutation, RandomSolutionSelection, SBXCrossover, BinaryTournamentSelection
 from jmetal.util.termination_criterion import StoppingByEvaluations
 from tqdm import tqdm
 
@@ -19,7 +19,7 @@ shared_kwargs = {
     "mating_pool_size": 20,
     "offspring_population_size": 140,
     "crossover": SBXCrossover(probability=1.0, distribution_index=20),
-    "selection": RandomSolutionSelection(),
+    "selection": BinaryTournamentSelection(),
 }
 
 
@@ -255,7 +255,8 @@ def save_build_kwargs(kwargs: dict, fname: str) -> None:
         
         
 def read_build_kwargs(fname: str) -> dict:
-    if not os.path.isfile(f"results/kwargs/{fname}.json"):
+    fpath = f"results/kwargs/{fname}.json"
+    if not os.path.isfile(fpath):
         return {}
     with open(f"results/kwargs/{fname}.json", "r") as f:
         return json.load(f)
@@ -272,54 +273,54 @@ def find_kwargs():
     ]
 
     problem_types = [
-#         AckleyProblem,
+        AckleyProblem,
         DeJongProblem,
         RastriginProblem,
         GriewankProblem,
     ]
 
     runs = [
-#         (
-#             buildFollowBestAlg,
-#             "follow_best",
-#             {
-#                 "probability": [0.4, 1],
-#                 "tracked_best_count": [5, 10, 20],
-#                 "follow_rate": [0.1],
-#             },
-#         ),
-#         (
-#             buildFollowDistinctBestAlg,
-#             "follow_distinct_best",
-#             {
-#                 "probability": [0.4, 1],
-#                 "tracked_best_count": [5, 10, 20],
-#                 "copy_genes_alpha": [1, 2, 5],
-#                 "follow_rate": [0.1],
-#             },
-#         ),
-#         (
-#             buildRepelWorstGravityAlg,
-#             "repel_worst_gravity",
-#             {
-#                 "probability": [0.4, 1],
-#                 "tracked_worst_count": [5, 10, 20],
-#                 "repel_rate": [0.1],
-#             },
-#         ),
-#         (
-#             buildDistinctGravityComboAlg,
-#             "combo_distinct_gravity",
-#             {
-#                 "follow_probability": [0.4, 1],
-#                 "repel_probability": [0.4, 1],
-#                 "tracked_best_count": [5, 10, 20],
-#                 "copy_genes_alpha": [1, 2, 5],
-#                 "tracked_worst_count": [5, 10, 20],
-#                 "follow_rate": [0.1],
-#                 "repel_rate": [0.1],
-#             },
-#         ),
+        (
+            buildFollowBestAlg,
+            "follow_best",
+            {
+                "probability": [0.4, 1],
+                "tracked_best_count": [5, 10, 20],
+                "follow_rate": [0.1],
+            },
+        ),
+        (
+            buildFollowDistinctBestAlg,
+            "follow_distinct_best",
+            {
+                "probability": [0.4, 1],
+                "tracked_best_count": [5, 10, 20],
+                "copy_genes_alpha": [1, 2, 5],
+                "follow_rate": [0.1],
+            },
+        ),
+        (
+            buildRepelWorstGravityAlg,
+            "repel_worst_gravity",
+            {
+                "probability": [0.4, 1],
+                "tracked_worst_count": [5, 10, 20],
+                "repel_rate": [0.1],
+            },
+        ),
+        (
+            buildDistinctGravityComboAlg,
+            "combo_distinct_gravity",
+            {
+                "follow_probability": [0.4, 1],
+                "repel_probability": [0.4, 1],
+                "tracked_best_count": [5, 10, 20],
+                "copy_genes_alpha": [1, 2, 5],
+                "tracked_worst_count": [5, 10, 20],
+                "follow_rate": [0.1],
+                "repel_rate": [0.1],
+            },
+        ),
         (
             buildDistinctGravityMultistepComboAlg,
             "combo_distinct_gravity_multistep",

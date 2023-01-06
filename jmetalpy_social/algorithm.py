@@ -79,7 +79,7 @@ class ObservedPaperAlgorithm(PaperAlgorithm):
         self.init_progress()
         
         if self.verbose:
-            #assume we always use StoppingByEvaluations criterion so that we can use progress bar
+            #we use StoppingByEvaluations as StoppingByIterations
             for i in tqdm(range(self.termination_criterion.max_evaluations)):
                 self.step()
                 self.update_progress()
