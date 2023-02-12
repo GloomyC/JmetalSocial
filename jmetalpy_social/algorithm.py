@@ -59,7 +59,8 @@ class ObservedPaperAlgorithm(PaperAlgorithm):
 
         self.history = {"best":[],
                         "average":[],
-                        "dimension":self.problem.number_of_variables
+                        "population":[],
+                        "dimension":self.problem.number_of_variables,
                         }
         self.verbose = True
         
@@ -68,6 +69,7 @@ class ObservedPaperAlgorithm(PaperAlgorithm):
 
         self.history["best"].append(self.solutions[0].objectives[0])
         self.history["average"].append(np.mean(list(map(lambda x: x.objectives[0], self.solutions))))
+        self.history["population"].append(list(map(lambda x: x.objectives[0], self.solutions)))
 
     def run(self):
         self.start_computing_time = time.time()
