@@ -213,9 +213,9 @@ def buildDistinctGravityMultistepComboAlg(
 def joinHistories(histories: list[dict]) -> dict:
     joined_history = {}
 
-    for k, v in histories[0].items():
-        cat_vals = np.array([hist[k] for hist in histories])
-        joined_history[k] = np.mean(cat_vals, axis=0).tolist()
+    for k, v in histories[0].items():        
+        cat_vals = [hist[k] for hist in histories]
+        joined_history[k] = cat_vals
 
     return joined_history
 
